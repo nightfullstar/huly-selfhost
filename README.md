@@ -8,26 +8,9 @@ Please use this README if you want to deploy Huly on your server with `docker co
 
 If you prefer Kubernetes deployment, there is a sample Kubernetes configuration under [kube](kube) directory.
 
-## Installing `nginx` and `docker`
+## Quick Start
 
-First, update repositories cache:
-
-```bash
-sudo apt update
-```
-
-Now, install `nginx`:
-
-```bash
-sudo apt install nginx
-```
-
-Install docker using the [recommended method](https://docs.docker.com/engine/install/ubuntu/) from docker website.
-Afterwards perform [post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/). Pay attention to 3rd step with `newgrp docker` command, it needed for correct execution in setup script.
-
-## Clone the `huly-selfhost` repository and configure `nginx`
-
-Next, let's clone the `huly-selfhost` repository and configure Huly.
+The setup script will ask you to choose between Caddy (recommended) and nginx:
 
 ```bash
 git clone https://github.com/hcengineering/huly-selfhost.git
@@ -35,29 +18,119 @@ cd huly-selfhost
 ./setup.sh
 ```
 
-This will generate a [huly.conf](./huly.conf) file with your chosen values and create your nginx config.
+Choose your preferred reverse proxy:
+- **Caddy (Recommended)** - Automatic HTTPS, easier configuration, runs in Docker
+- **nginx** - Traditional option, requires system installation
 
-To add the generated configuration to your Nginx setup, run the following:
+## Reverse Proxy Options
 
+### Option 1: Caddy (Recommended - Default Choice)
+
+**Benefits:**
+- ✅ Automatic HTTPS certificates from Let's Encrypt
+- ✅ Simpler configuration with readable syntax  
+- ✅ Excellent WebSocket support out of the box
+- ✅ Zero-downtime configuration reloads
+- ✅ Runs entirely in Docker (no system installation needed)
+- ✅ Automatic HTTP to HTTPS redirects
+
+**Best for:** Most users, especially those wanting hassle-free SSL
+
+### Option 2: nginx
+
+**Benefits:**
+- ✅ Traditional and well-known
+- ✅ Extensive documentation and community
+- ✅ Fine-grained control over configuration
+
+**Requires:** System nginx installation and manual SSL certificate management
+
+**Best for:** Users already familiar with nginx or with specific nginx requirements
+
+## Setup Process
+
+The setup script (`./setup.sh`) will:
+
+1. **Ask for reverse proxy choice** (Caddy or nginx)
+2. **Ask for host address** (domain name or IP)
+3. **Ask for HTTP port** (default: 80)
+4. **Ask about SSL** (for domain names)
+5. **Generate configuration files** based on your choices
+6. **Create docker-compose.yml** with the appropriate reverse proxy
+7. **Start the services** (optional)
+
+## Post-Setup Instructions
+
+### For Caddy Users (Default)
+Everything is managed automatically! Caddy handles:
+- SSL certificate generation and renewal
+- HTTP to HTTPS redirects  
+- WebSocket connections
+- Configuration validation
+
+```bash
+# View logs
+docker compose logs caddy
+
+# Reload configuration
+./caddy.sh
+
+# Advanced: Manual reload
+docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+```
+
+### For nginx Users
+Additional system setup required:
+
+## Installing nginx (nginx users only)
+
+```bash
+sudo apt update
+sudo apt install nginx
+```
+
+Link the generated configuration:
 ```bash
 sudo ln -s $(pwd)/nginx.conf /etc/nginx/sites-enabled/huly.conf
-```
-
-> [!NOTE]
-> If you change `HOST_ADDRESS`, `SECURE`, `HTTP_PORT` or `HTTP_BIND` be sure to update your [nginx.conf](./nginx.conf)
-> by running:
-> ```bash
-> ./nginx.sh
-> ```
->You can safely execute this script after adding your custom configurations like ssl. It will only overwrite the
-> necessary settings.
-
-Finally, let's reload `nginx` and start Huly with `docker compose`.
-
-```bash
+sudo nginx -t
 sudo nginx -s reload
-sudo docker compose up -d
 ```
+
+## Docker Installation (All Users)
+
+Install docker using the [recommended method](https://docs.docker.com/engine/install/ubuntu/) from docker website.
+Afterwards perform [post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/). Pay attention to 3rd step with `newgrp docker` command, it needed for correct execution in setup script.
+
+## Configuration Management
+
+### Update Configuration
+After changing settings in `huly.conf`:
+
+**Caddy users:**
+```bash
+./caddy.sh
+```
+
+**nginx users:**  
+```bash
+./nginx.sh
+sudo nginx -s reload
+```
+
+### Switch Between Reverse Proxies
+```bash
+# Switch to Caddy
+./migrate-to-caddy.sh
+
+# Switch to nginx  
+./migrate-to-nginx.sh
+```
+
+## Documentation
+
+- **Caddy users**: See [CADDY_README.md](./CADDY_README.md) for detailed Caddy information
+- **nginx users**: Continue reading this README for nginx-specific instructions
+- **Migration**: See [MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md) for technical details
 
 Now, launch your web browser and enjoy Huly!
 

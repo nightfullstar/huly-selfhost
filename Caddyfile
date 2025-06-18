@@ -1,0 +1,84 @@
+{
+    # Global options
+    auto_https off
+}
+
+:80 {
+    # Handle WebSocket upgrades and proxy headers
+    header {
+        # Remove Server header for security
+        -Server
+    }
+
+    # Main frontend
+    handle {
+        reverse_proxy front:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Accounts service
+    handle /_accounts/* {
+        uri strip_prefix /_accounts
+        reverse_proxy account:3000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Collaborator service (WebSocket support)
+    handle /_collaborator/* {
+        uri strip_prefix /_collaborator
+        reverse_proxy collaborator:3078 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+
+    # Transactor service (WebSocket support)
+    handle /_transactor/* {
+        uri strip_prefix /_transactor
+        reverse_proxy transactor:3333 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+
+    # Handle JWT tokens (eyJ prefix)
+    handle /eyJ* {
+        reverse_proxy transactor:3333 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+
+    # Rekoni service
+    handle /_rekoni/* {
+        uri strip_prefix /_rekoni
+        reverse_proxy rekoni:4004 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Stats service
+    handle /_stats/* {
+        uri strip_prefix /_stats
+        reverse_proxy stats:4900 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # File upload size limit
+    request_body {
+        max_size 100MB
+    }
+}

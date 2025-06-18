@@ -40,11 +40,11 @@ else
 fi
 
 # Extract IP address for redirect configuration
-IP_ADDRESS=$(grep -oE 'listen \K[^:]+(?=:[0-9]+ ssl;)' nginx.conf)
+IP_ADDRESS=$(sed -n 's/.*listen \([^:]*\):[0-9]* ssl;.*/\1/p' nginx.conf | head -1)
 
-# Remove HTTP to HTTPS redirect server block if SSL is enabled
+# Remove HTTP to HTTPS redirect server block if SSL is NOT enabled
 if [[ -z "$SECURE" ]]; then
-    echo "Enabling SSL; removing HTTP to HTTPS redirect block..."
+    echo "SSL disabled; removing HTTP to HTTPS redirect block..."
     # Remove the entire server block for port 80
     if grep -q 'return 301 https://\$host\$request_uri;' nginx.conf; then
         sed -i.bak '/# !/,/!/d' nginx.conf
